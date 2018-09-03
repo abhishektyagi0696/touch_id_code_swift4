@@ -1,0 +1,109 @@
+//
+//  SchemeViewController.swift
+//  project1
+//  Created by Abhishek Tyagi on 20/08/18.
+//  Copyright © 2018 Abhishek Tyagi. All rights reserved.
+
+import UIKit
+import Charts
+
+class SchemeViewController: UIViewController, ChartViewDelegate {
+
+    @IBOutlet weak var ApproveBtn: UIButton!
+    @IBOutlet weak var doneBtn: UIButton!
+    @IBOutlet weak var totalLbl: UILabel!
+    @IBOutlet weak var pieChartView: PieChartView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+      
+        // Do any additional setup after loading the view.
+        pieChartView.delegate = self
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        
+        self.navigationController?.isNavigationBarHidden = false
+        self.tabBarController?.navigationItem.setHidesBackButton(true, animated: false)
+        self.tabBarController?.navigationItem.title = "Dashboard"
+        self.tabBarController?.navigationController?.navigationBar.barTintColor = UIColor.init(red: 100/255, green: 30/255, blue: 129/255, alpha: 1)
+        let logOut = UIBarButtonItem(image: #imageLiteral(resourceName: "logout"), style: .plain, target: self, action: #selector(logoutTapped))
+        self.tabBarController?.navigationItem.rightBarButtonItem = logOut
+        self.tabBarController?.navigationItem.rightBarButtonItem?.tintColor = UIColor.black
+        updateChartData()
+        pieChartView.animate(xAxisDuration: 1.4, easingOption: .easeOutBack)
+    }
+    
+    @objc func logoutTapped(){
+        self.navigationController?.popViewController(animated: true)
+    }
+
+  @objc func updateChartData()  {
+    
+    // generate chart data entries
+        let tag = ["DD Submitted", "DD Approved"]
+        let tagValue = [20, 30.00]
+        let sum = Int(tagValue.reduce(0, +))
+        self.totalLbl.text = "\(sum)"
+        doneBtn.setTitle("DD Submitted\n\t(\(Int(tagValue[0])))", for: .normal)
+        doneBtn.titleLabel?.lineBreakMode = NSLineBreakMode.byWordWrapping
+        ApproveBtn.setTitle("DD Approved\n\t(\(Int(tagValue[1])))", for: .normal)
+        ApproveBtn.titleLabel?.lineBreakMode = NSLineBreakMode.byWordWrapping  
+
+        var entries = [PieChartDataEntry]()
+        for (index, value) in tagValue.enumerated(){
+            let entry = PieChartDataEntry()
+            entry.y = value
+            entry.label = tag[index]
+            entries.append(entry)
+        
+        }
+
+    //  chart setup
+        let set = PieChartDataSet( values: entries, label: "")
+        let data = PieChartData(dataSet: set)
+        let pFormatter = NumberFormatter()
+        pFormatter.numberStyle = .percent
+        pFormatter.maximumFractionDigits = 1
+        pFormatter.multiplier = 1
+        pFormatter.percentSymbol = " %"
+        data.setValueFormatter(DefaultValueFormatter(formatter: pFormatter))
+        set.sliceSpace = 2
+        pieChartView.drawEntryLabelsEnabled = false
+    
+    // this is custom extension method. Download the code for more details.
+        let colors: [UIColor] = [UIColor.blue.withAlphaComponent(0.35), UIColor.green.withAlphaComponent(0.35)]
+        set.colors = colors
+        pieChartView.data = data
+        pieChartView.noDataText = "No data available"
+    
+    // user interaction
+        let d = Description()
+        d.text = ""
+        d.textColor.withAlphaComponent(0.0)
+        pieChartView.chartDescription = d
+        pieChartView.isUserInteractionEnabled = true
+        self.view.addSubview(pieChartView)
+    
+    
+    // Animations
+        pieChartView.spin(duration: 1.4,
+                      fromAngle: pieChartView.rotationAngle,
+                      toAngle: pieChartView.rotationAngle + 60,
+                      easingOption: .easeInCubic)
+        pieChartView.animate(xAxisDuration: 1.4)
+        pieChartView.animate(yAxisDuration: 1.4)
+        pieChartView.animate(xAxisDuration: 1.4, yAxisDuration: 1.4)
+    
+    
+    // if size classes changes to ipad
+        if traitCollection.horizontalSizeClass == .regular && traitCollection.verticalSizeClass == .regular{
+        
+            // changing font size on ipad
+        set.valueFont = NSUIFont.systemFont(ofSize: 23.0)
+        pieChartView.legend.font = NSUIFont.systemFont(ofSize: 17.0)
+        pieChartView.legend.formSize = 15.0
+
+    }
+    }
+}
+    
