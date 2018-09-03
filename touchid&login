@@ -1,0 +1,236 @@
+//
+//  ViewController.swift
+//  project1
+//
+//  Created by Abhishek Tyagi on 20/08/18.
+//  Copyright © 2018 Abhishek Tyagi. All rights reserved.
+//
+
+import UIKit
+import LocalAuthentication
+
+class ViewController: UIViewController,UITextFieldDelegate {
+    
+    //outlets from view
+    @IBOutlet weak var loginBtn: UIButton!
+    @IBOutlet weak var passwordTxtField: UITextField!
+    @IBOutlet weak var usernameTxtField: UITextField!
+    @IBOutlet weak var centerAlignPassword: NSLayoutConstraint!
+    @IBOutlet weak var centerAlignUsername: NSLayoutConstraint!
+    @IBOutlet weak var centerAlignBtn: NSLayoutConstraint!
+    
+    override func viewDidLoad() {
+       super.viewDidLoad()
+        //textfields delegate methods
+        usernameTxtField.delegate = self
+        passwordTxtField.delegate = self
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.authenticateUserTouchID()
+        
+        //animations of textfields
+        centerAlignUsername.constant += view.bounds.width
+        centerAlignPassword.constant -= view.bounds.width
+        loginBtn.alpha = 0.0
+        
+        //login button ui
+        loginBtn.backgroundColor = .clear
+        loginBtn.layer.borderColor = UIColor.white.cgColor
+        loginBtn.clipsToBounds = true
+        loginBtn.layer.borderWidth = 2
+        //to make text fields empty after logout
+        usernameTxtField.text = ""
+        passwordTxtField.text = ""
+        
+        //textfields text color
+        loginBtn.layer.cornerRadius = 25
+        usernameTxtField.textColor = UIColor.white
+        passwordTxtField.textColor = UIColor.white
+        
+        //hiding navigation controller
+        self.navigationController?.setNavigationBarHidden(true, animated: true)
+        
+        //type of return kry in keyboard of following textfields
+        usernameTxtField.returnKeyType = .next
+        passwordTxtField.returnKeyType = .done
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(ViewController.keyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(ViewController.keyboardWillHide), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Textfield animations
+        UIView.animate(withDuration: 0.5, delay: 0.0, options: UIViewAnimationOptions.curveEaseOut, animations: {
+            self.centerAlignUsername.constant -= self.view.bounds.width
+            self.centerAlignPassword.constant += self.view.bounds.width
+            self.view.layoutIfNeeded()
+        }, completion: nil)
+        // Login button Animations
+        UIView.animate(withDuration: 0.5, delay: 0.4, options: .curveEaseOut, animations: {
+            self.loginBtn.alpha = 1
+            self.view.layoutIfNeeded()
+        }, completion: nil)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        // To remove the observer
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    
+    // Login button action
+    @IBAction func loginBtn(_ sender: Any) {
+        
+        if usernameTxtField.text?.isEmpty == true || passwordTxtField.text?.isEmpty == true{
+          //  alert(title: "Error!", message: "Both fields are compulsory")
+                   self.loginBtn.shaking()
+        }
+        else{
+            UIView.animate(withDuration: 0.6,
+                           animations: {
+                            self.loginBtn.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+            },
+                           completion: { _ in
+                            UIView.animate(withDuration: 0.6) {
+                                self.loginBtn.transform = CGAffineTransform.identity
+                            }
+            })
+            let qualityOfServiceClass = DispatchQoS.QoSClass.background
+            let backgroundQueue = DispatchQueue.global(qos: qualityOfServiceClass)
+            backgroundQueue.async(execute: {
+                sleep(1)
+            DispatchQueue.main.async {
+                
+                let storyboard = UIStoryboard.init(name: "Main", bundle: nil)
+                let initiatevc = storyboard.instantiateViewController(withIdentifier: "tabBarController") as! tabBarController
+                self.navigationController?.pushViewController(initiatevc, animated: false)
+            
+            }
+          })
+    }
+    }
+    //Function for hiding the keyboard on touching
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        view.endEditing(true)
+    }
+   
+    
+    // Function to show a alert (not using in this app)
+    @objc func alert(title:String, message:String){
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .cancel
+            , handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    //Function for moving view upwards
+    @ objc func textFieldShouldReturn(_ textField: UITextField) -> Bool
+    {
+        let nextTag = textField.tag + 1
+        // Try to find next responder
+        let nextResponder = textField.superview?.viewWithTag(nextTag) as UIResponder?
+        
+        if nextResponder != nil {
+            // Found next responder, so set it
+            nextResponder?.becomeFirstResponder()
+        } else {
+            // Not found, so remove keyboard
+            textField.resignFirstResponder()
+        }
+         return false
+    }
+    // This is for moving the uiview upwards with only onw touch
+    var isKeyboardAppear = false
+    
+    @objc func keyboardWillShow(notification: NSNotification) {
+        if !isKeyboardAppear {
+            if ((notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue) != nil {
+                if self.view.frame.origin.y == 0{
+                    self.view.frame.origin.y -= 90
+                }
+            }
+            isKeyboardAppear = true
+        }
+    }
+    
+    @objc func keyboardWillHide(notification: NSNotification) {
+        if isKeyboardAppear {
+            if ((notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue) != nil {
+                if view.frame.origin.y < 90{
+                    self.view.frame.origin.y = 0
+                }else{
+                    self.view.frame.origin.y += 90
+                }
+            }
+            isKeyboardAppear = false
+        }
+    }
+// function for biometric login to app.
+    func authenticateUserTouchID() {
+        let context : LAContext = LAContext()
+        // Declare a NSError variable.
+        let myLocalizedReasonString = "Would you like to use touch authentication for your app."
+        var authError: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication,  error: &authError) {
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: myLocalizedReasonString) { success, evaluateError in
+                if success // IF TOUCH ID AUTHENTICATION IS SUCCESSFUL, NAVIGATE TO NEXT VIEW CONTROLLER
+                {
+                    DispatchQueue.main.async{
+                        print("Authentication success by the system")
+                        let storyboard = UIStoryboard.init(name: "Main", bundle: nil)
+                        let initiatevc = storyboard.instantiateViewController(withIdentifier: "tabBarController") as! tabBarController
+                        self.navigationController?.pushViewController(initiatevc, animated: false)
+                    }
+                }
+                else // IF TOUCH ID AUTHENTICATION IS FAILED, PRINT ERROR MSG
+                {
+                    guard let error = authError else {
+                        return
+                    }
+                    //TODO: Show appropriate alert if biometry/TouchID/FaceID is lockout or not enrolled
+                    let message  = self.showErrorMessageForLAErrorCode(errorCode: error.code)
+                    print(message)
+                    }
+                    
+                }
+            }
+    }
+    
+    func showErrorMessageForLAErrorCode( errorCode:Int ) -> String{
+        
+        var message = ""
+        
+        if #available(iOS 11.0, *) {
+            switch errorCode {
+                
+            case LAError.appCancel.rawValue:
+                message = "Authentication was cancelled by application"
+            case LAError.invalidContext.rawValue:
+                message = "The context is invalid"
+            case LAError.authenticationFailed.rawValue:
+                message = "The user failed to provide valid credentials"
+            case LAError.passcodeNotSet.rawValue:
+                message = "Passcode is not set on the device"
+            case LAError.biometryLockout.rawValue:
+                message = "Too many failed attempts."
+            case LAError.biometryNotAvailable.rawValue:
+                message =  "TouchID is not available on the device"
+            case LAError.userCancel.rawValue:
+                message = "The user did cancel"
+            case LAError.userFallback.rawValue:
+                message = "The user chose to use the fallback"
+            case LAError.systemCancel.rawValue:
+                message = "Authentication was cancelled by the system"
+            default:
+                message = "Did not find error code on LAError object"
+                
+            }
+        }
+        
+        return message
+        
+    }
+}
