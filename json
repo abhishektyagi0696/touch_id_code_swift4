@@ -1,0 +1,43 @@
+import UIKit
+
+
+
+struct Data:Decodable {
+    let name:String
+    let username:String
+    let email:String
+    let phone:String
+}
+class mainViewController: UIViewController {
+        var arr = [Data]()
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        getJson()
+
+        // Do any additional setup after loading the view.
+    }
+
+    @IBAction func logout(_ sender: Any) {
+        self.dismiss(animated: true, completion: nil)
+    }
+
+    
+    func getJson() {
+        let url = URL(string: "http://jsonplaceholder.typicode.com/users")
+        URLSession.shared.dataTask(with: url!) { (data, response, error) in
+            do{
+                if error == nil{
+                    self.arr = try JSONDecoder().decode([Data].self, from: data!)
+                    for mainArr in self.arr {
+                        print(mainArr.name,":", mainArr.username)
+                    }
+                }
+            }catch{
+                print(error.localizedDescription)
+                
+            }
+            }.resume()
+        
+    }
+
+}
