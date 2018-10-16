@@ -1,0 +1,3 @@
+ let storyboard = UIStoryboard.init(name: "Main", bundle: nil)
+        let initiateVc = storyboard.instantiateViewController(withIdentifier: "mainViewController")
+        self.present(initiateVc, animated: true, completion: nil)
